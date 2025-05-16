@@ -35,99 +35,111 @@ class BacktestEngine:
     """
     
     def __init__(self, config):
-        """
-        Инициализация движка бэктестинга
-        
-        Args:
-            config: Объект конфигурации
-        """
-        self.config = config
-        self.data_provider = MarketDataProvider(self.config.TINKOFF_TOKEN, config)
-        self.initial_capital = config.INITIAL_CAPITAL
-        self.commission_rate = config.COMMISSION_RATE
-        
-        # Инициализация внутренних переменных
-        self.trades = []
-        self.equity_curve = []
-        self.daily_returns = []
-        self.positions = {}
-        self.capital = self.initial_capital
-        self.max_capital = self.initial_capital
+        try:
+            """
+            Инициализация движка бэктестинга
+            
+            Args:
+                config: Объект конфигурации
+            """
+            self.config = config
+            self.data_provider = MarketDataProvider(self.config.TINKOFF_TOKEN, config)
+            self.initial_capital = config.INITIAL_CAPITAL
+            self.commission_rate = config.COMMISSION_RATE
+            
+            # Инициализация внутренних переменных
+            self.trades = []
+            self.equity_curve = []
+            self.daily_returns = []
+            self.positions = {}
+            self.capital = self.initial_capital
+            self.max_capital = self.initial_capital
+        except Exception as e:
+            logger.exception(f"Ошибка при инициализации движка бэктестинга: {e}")
+            return None
     
     def run_backtest(self, strategy_name: str, symbol: str, 
                     start_date: datetime, end_date: Optional[datetime] = None) -> Dict[str, Any]:
-        """
-        Запуск бэктестинга для заданной стратегии и символа
-        
-        Args:
-            strategy_name: Название стратегии
-            symbol: Символ для бэктестинга
-            start_date: Дата начала бэктеста
-            end_date: Дата окончания бэктеста (если None, используется текущая дата)
+        try:
+            """
+            Запуск бэктестинга для заданной стратегии и символа
             
-        Returns:
-            dict: Результаты бэктеста
-        """
-        logger.info(f"Запуск бэктеста для стратегии {strategy_name} на символе {symbol}")
-        
-        # Если конечная дата не указана, используем текущую
-        if end_date is None:
-            end_date = datetime.now()
-        
-        # Создаем стратегию
-        strategy = self._create_strategy(strategy_name)
-        if not strategy:
-            logger.error(f"Стратегия {strategy_name} не найдена")
-            return {"error": f"Стратегия {strategy_name} не найдена"}
-        
-        # Получаем исторические данные
-        data = self._get_historical_data(symbol, start_date, end_date)
-        if data is None or len(data) < 20:
-            logger.error(f"Недостаточно данных для бэктеста {symbol}")
-            return {"error": f"Недостаточно данных для бэктеста {symbol}"}
-        
-        # Рассчитываем индикаторы
-        data = TechnicalIndicators.calculate_all_indicators(data, self.config)
-        
-        # Определяем свечные паттерны
-        data = CandlePatterns.identify_patterns(data)
-        
-        # Сбрасываем внутренние переменные
-        self.trades = []
-        self.equity_curve = []
-        self.daily_returns = []
-        self.positions = {}
-        self.capital = self.initial_capital
-        self.max_capital = self.initial_capital
-        
-        # Запускаем симуляцию
-        self._run_simulation(data, strategy, symbol)
-        
-        # Рассчитываем метрики
-        results = self._calculate_metrics()
-        
-        logger.info(f"Бэктест завершен. Доходность: {results['total_return']:.2f}%, "
-                  f"сделок: {results['total_trades']}")
-        
-        return results
+            Args:
+                strategy_name: Название стратегии
+                symbol: Символ для бэктестинга
+                start_date: Дата начала бэктеста
+                end_date: Дата окончания бэктеста (если None, используется текущая дата)
+                
+            Returns:
+                dict: Результаты бэктеста
+            """
+            logger.info(f"Запуск бэктеста для стратегии {strategy_name} на символе {symbol}")
+            
+            # Если конечная дата не указана, используем текущую
+            if end_date is None:
+                end_date = datetime.now()
+            
+            # Создаем стратегию
+            strategy = self._create_strategy(strategy_name)
+            if not strategy:
+                logger.error(f"Стратегия {strategy_name} не найдена")
+                return {"error": f"Стратегия {strategy_name} не найдена"}
+            
+            # Получаем исторические данные
+            data = self._get_historical_data(symbol, start_date, end_date)
+            if data is None or len(data) < 20:
+                logger.error(f"Недостаточно данных для бэктеста {symbol}")
+                return {"error": f"Недостаточно данных для бэктеста {symbol}"}
+            
+            # Рассчитываем индикаторы
+            data = TechnicalIndicators.calculate_all_indicators(data, self.config)
+            
+            # Определяем свечные паттерны
+            data = CandlePatterns.identify_patterns(data)
+            
+            # Сбрасываем внутренние переменные
+            self.trades = []
+            self.equity_curve = []
+            self.daily_returns = []
+            self.positions = {}
+            self.capital = self.initial_capital
+            self.max_capital = self.initial_capital
+            
+            # Запускаем симуляцию
+            self._run_simulation(data, strategy, symbol)
+            
+            # Рассчитываем метрики
+            results = self._calculate_metrics()
+            
+            logger.info(f"Бэктест завершен. Доходность: {results['total_return']:.2f}%, "
+                    f"сделок: {results['total_trades']}")
+            
+            return results
+        except Exception as e:
+            logger.exception(f"Ошибка при запуске бэктеста: {e}")
+            return None
     
     def _create_strategy(self, strategy_name: str) -> Optional[StrategyInterface]:
-        """
-        Создание стратегии по названию
-        
-        Args:
-            strategy_name: Название стратегии
+        try:
+            """
+            Создание стратегии по названию
             
-        Returns:
-            StrategyInterface: Экземпляр стратегии или None
-        """
-        if strategy_name.lower() == "trend":
-            return TrendStrategy(self.config)
-        elif strategy_name.lower() == "reversal":
-            return ReversalStrategy(self.config)
-        elif strategy_name.lower() == "combined":
-            return CombinedStrategy(self.config)
-        else:
+            Args:
+                strategy_name: Название стратегии
+                
+            Returns:
+                StrategyInterface: Экземпляр стратегии или None
+            """
+            if strategy_name.lower() == "trend":
+                return TrendStrategy(self.config)
+            elif strategy_name.lower() == "reversal":
+                return ReversalStrategy(self.config)
+            elif strategy_name.lower() == "combined":
+                return CombinedStrategy(self.config)
+            else:
+                return None
+        except Exception as e:
+            logger.exception(f"Ошибка при создании стратегии {strategy_name}: {e}")
             return None
     
     def _get_historical_data(self, symbol: str, start_date: datetime, end_date: datetime) -> Optional[pd.DataFrame]:
@@ -144,240 +156,255 @@ class BacktestEngine:
                 days_back=days_diff + 30  # Добавляем запас для расчета индикаторов
             )
             # Фильтруем данные по дате
+            start_date = pd.to_datetime(start_date).tz_localize('UTC')
+            end_date = pd.to_datetime(end_date).tz_localize('UTC')
+
             if data is not None:
                 data = data[(data.index >= start_date) & (data.index <= end_date)]
             # Добавляем индикаторы
             data = TechnicalIndicators.calculate_all_indicators(data, self.config)
             return data
         except Exception as e:
-            logger.error(f"Ошибка при получении исторических данных: {e}")
+            logger.exception(f"Ошибка при получении исторических данных: {e}")
             return None
     
     def _run_simulation(self, data: pd.DataFrame, strategy: StrategyInterface, symbol: str) -> None:
-        """
-        Запуск симуляции торговли
-        
-        Args:
-            data: DataFrame с историческими данными
-            strategy: Стратегия для тестирования
-            symbol: Тикер символа
-        """
-        # Минимальное количество свечей для работы индикаторов
-        lookback = 30
-        
-        # Начальная запись для кривой капитала
-        self.equity_curve.append({
-            'date': data.index[lookback],
-            'equity': self.capital,
-            'position': 0
-        })
-        
-        # Для каждой свечи после lookback
-        for i in range(lookback, len(data)):
-            # Получаем текущую дату
-            current_date = data.index[i]
+        try:
+            """
+            Запуск симуляции торговли
             
-            # Обновляем кривую капитала
-            if i > lookback:
-                self.equity_curve.append({
-                    'date': current_date,
-                    'equity': self.capital,
-                    'position': 1 if symbol in self.positions else 0
-                })
+            Args:
+                data: DataFrame с историческими данными
+                strategy: Стратегия для тестирования
+                symbol: Тикер символа
+            """
+            # Минимальное количество свечей для работы индикаторов
+            lookback = 30
             
-            # Получаем срез данных для анализа
-            data_slice = data.iloc[:i+1]
+            # Начальная запись для кривой капитала
+            self.equity_curve.append({
+                'date': data.index[lookback],
+                'equity': self.capital,
+                'position': 0
+            })
             
-            # Текущая цена закрытия
-            current_price = data.iloc[i]['close']
+            # Для каждой свечи после lookback
+            for i in range(lookback, len(data)):
+                # Получаем текущую дату
+                current_date = data.index[i]
+                
+                # Обновляем кривую капитала
+                if i > lookback:
+                    self.equity_curve.append({
+                        'date': current_date,
+                        'equity': self.capital,
+                        'position': 1 if symbol in self.positions else 0
+                    })
+                
+                # Получаем срез данных для анализа
+                data_slice = data.iloc[:i+1]
+                
+                # Текущая цена закрытия
+                current_price = data.iloc[i]['close']
+                
+                # Если есть открытая позиция, проверяем сигналы на продажу
+                if symbol in self.positions:
+                    position = self.positions[symbol]
+                    
+                    # Проверяем стоп-лосс
+                    if current_price <= position['stop_loss']:
+                        # Закрываем позицию по стоп-лоссу
+                        self._close_position(symbol, current_price, current_date, "stop_loss")
+                        continue
+                    
+                    # Проверяем тейк-профит
+                    if current_price >= position['take_profit']:
+                        # Закрываем позицию по тейк-профиту
+                        self._close_position(symbol, current_price, current_date, "take_profit")
+                        continue
+                    
+                    # Проверяем максимальное время удержания
+                    days_held = (current_date - position['entry_date']).days
+                    if days_held >= self.config.MAX_HOLDING_DAYS:
+                        # Закрываем позицию по времени
+                        self._close_position(symbol, current_price, current_date, "max_holding_time")
+                        continue
+                    
+                    # Проверяем сигналы от стратегии
+                    sell_signal, sell_details = strategy.check_sell_signals(data_slice, position)
+                    
+                    if sell_signal:
+                        # Закрываем позицию по сигналу
+                        self._close_position(symbol, current_price, current_date, "strategy_signal")
+                else:
+                    # Если нет открытой позиции, проверяем сигналы на покупку
+                    buy_signal, buy_details = strategy.check_buy_signals(data_slice)
+                    
+                    if buy_signal:
+                        # Открываем новую позицию
+                        self._open_position(symbol, current_price, current_date, buy_details)
             
-            # Если есть открытая позиция, проверяем сигналы на продажу
-            if symbol in self.positions:
-                position = self.positions[symbol]
-                
-                # Проверяем стоп-лосс
-                if current_price <= position['stop_loss']:
-                    # Закрываем позицию по стоп-лоссу
-                    self._close_position(symbol, current_price, current_date, "stop_loss")
-                    continue
-                
-                # Проверяем тейк-профит
-                if current_price >= position['take_profit']:
-                    # Закрываем позицию по тейк-профиту
-                    self._close_position(symbol, current_price, current_date, "take_profit")
-                    continue
-                
-                # Проверяем максимальное время удержания
-                days_held = (current_date - position['entry_date']).days
-                if days_held >= self.config.MAX_HOLDING_DAYS:
-                    # Закрываем позицию по времени
-                    self._close_position(symbol, current_price, current_date, "max_holding_time")
-                    continue
-                
-                # Проверяем сигналы от стратегии
-                sell_signal, sell_details = strategy.check_sell_signals(data_slice, position)
-                
-                if sell_signal:
-                    # Закрываем позицию по сигналу
-                    self._close_position(symbol, current_price, current_date, "strategy_signal")
-            else:
-                # Если нет открытой позиции, проверяем сигналы на покупку
-                buy_signal, buy_details = strategy.check_buy_signals(data_slice)
-                
-                if buy_signal:
-                    # Открываем новую позицию
-                    self._open_position(symbol, current_price, current_date, buy_details)
-        
-        # Закрываем оставшиеся позиции по последней цене
-        last_date = data.index[-1]
-        last_price = data.iloc[-1]['close']
-        
-        for symbol in list(self.positions.keys()):
-            self._close_position(symbol, last_price, last_date, "end_of_backtest")
+            # Закрываем оставшиеся позиции по последней цене
+            last_date = data.index[-1]
+            last_price = data.iloc[-1]['close']
+            
+            for symbol in list(self.positions.keys()):
+                self._close_position(symbol, last_price, last_date, "end_of_backtest")
+        except Exception as e:
+            logger.exception(f"Ошибка при запуске симуляции: {e}")
+            return None
     
     def _open_position(self, symbol: str, price: float, date: datetime, details: Dict[str, Any]) -> None:
-        """
-        Открытие новой позиции
-        
-        Args:
-            symbol: Тикер символа
-            price: Цена открытия
-            date: Дата открытия
-            details: Детали сигнала
-        """
-        # Проверяем, есть ли у нас уже открытая позиция
-        if symbol in self.positions:
-            logger.warning(f"Позиция для {symbol} уже открыта, пропускаем сигнал")
-            return
-        
-        # Рассчитываем размер позиции (без учета комиссии)
-        max_position_size = self.capital * self.config.MAX_POSITION_SIZE
-        
-        # Рассчитываем количество акций
-        quantity = int(max_position_size / price)
-        
-        # Если количество акций ноль, значит недостаточно капитала
-        if quantity <= 0:
-            logger.warning(f"Недостаточно капитала для открытия позиции {symbol}")
-            return
-        
-        # Рассчитываем полную стоимость позиции с учетом комиссии
-        position_value = quantity * price
-        commission = position_value * self.commission_rate
-        total_cost = position_value + commission
-        
-        # Проверяем, достаточно ли капитала
-        if total_cost > self.capital:
-            # Корректируем количество
-            quantity = int((self.capital / (price * (1 + self.commission_rate))))
+        try:
+            """
+            Открытие новой позиции
             
-            # Пересчитываем стоимость
+            Args:
+                symbol: Тикер символа
+                price: Цена открытия
+                date: Дата открытия
+                details: Детали сигнала
+            """
+            # Проверяем, есть ли у нас уже открытая позиция
+            if symbol in self.positions:
+                logger.warning(f"Позиция для {symbol} уже открыта, пропускаем сигнал")
+                return
+            
+            # Рассчитываем размер позиции (без учета комиссии)
+            max_position_size = self.capital * self.config.MAX_POSITION_SIZE
+            
+            # Рассчитываем количество акций
+            quantity = int(max_position_size / price)
+            
+            # Если количество акций ноль, значит недостаточно капитала
+            if quantity <= 0:
+                logger.warning(f"Недостаточно капитала для открытия позиции {symbol}")
+                return
+            
+            # Рассчитываем полную стоимость позиции с учетом комиссии
             position_value = quantity * price
             commission = position_value * self.commission_rate
             total_cost = position_value + commission
-        
-        # Если все еще недостаточно капитала
-        if quantity <= 0 or total_cost > self.capital:
-            logger.warning(f"Недостаточно капитала для открытия позиции {symbol}")
-            return
-        
-        # Рассчитываем уровни стоп-лосса и тейк-профита
-        stop_loss_percent = self.config.STOP_LOSS_PERCENT / 100
-        take_profit_percent = self.config.TAKE_PROFIT_PERCENT / 100
-        
-        stop_loss = price * (1 - stop_loss_percent)
-        take_profit = price * (1 + take_profit_percent)
-        
-        # Создаем запись о позиции
-        position = {
-            'symbol': symbol,
-            'entry_price': price,
-            'quantity': quantity,
-            'entry_date': date,
-            'stop_loss': stop_loss,
-            'take_profit': take_profit,
-            'value': position_value
-        }
-        
-        # Сохраняем позицию
-        self.positions[symbol] = position
-        
-        # Обновляем капитал
-        self.capital -= total_cost
-        
-        # Сохраняем запись о сделке
-        trade = {
-            'symbol': symbol,
-            'entry_date': date,
-            'entry_price': price,
-            'quantity': quantity,
-            'type': 'buy',
-            'commission': commission,
-            'value': position_value,
-            'reasons': details.get('reasons', [])
-        }
-        
-        self.trades.append(trade)
-        
-        logger.debug(f"Открыта позиция {symbol}: {quantity} @ {price:.2f}, "
-                   f"стоп: {stop_loss:.2f}, тейк: {take_profit:.2f}")
+            
+            # Проверяем, достаточно ли капитала
+            if total_cost > self.capital:
+                # Корректируем количество
+                quantity = int((self.capital / (price * (1 + self.commission_rate))))
+                
+                # Пересчитываем стоимость
+                position_value = quantity * price
+                commission = position_value * self.commission_rate
+                total_cost = position_value + commission
+            
+            # Если все еще недостаточно капитала
+            if quantity <= 0 or total_cost > self.capital:
+                logger.warning(f"Недостаточно капитала для открытия позиции {symbol}")
+                return
+            
+            # Рассчитываем уровни стоп-лосса и тейк-профита
+            stop_loss_percent = self.config.STOP_LOSS_PERCENT / 100
+            take_profit_percent = self.config.TAKE_PROFIT_PERCENT / 100
+            
+            stop_loss = price * (1 - stop_loss_percent)
+            take_profit = price * (1 + take_profit_percent)
+            
+            # Создаем запись о позиции
+            position = {
+                'symbol': symbol,
+                'entry_price': price,
+                'quantity': quantity,
+                'entry_date': date,
+                'stop_loss': stop_loss,
+                'take_profit': take_profit,
+                'value': position_value
+            }
+            
+            # Сохраняем позицию
+            self.positions[symbol] = position
+            
+            # Обновляем капитал
+            self.capital -= total_cost
+            
+            # Сохраняем запись о сделке
+            trade = {
+                'symbol': symbol,
+                'entry_date': date,
+                'entry_price': price,
+                'quantity': quantity,
+                'type': 'buy',
+                'commission': commission,
+                'value': position_value,
+                'reasons': details.get('reasons', [])
+            }
+            
+            self.trades.append(trade)
+            
+            logger.debug(f"Открыта позиция {symbol}: {quantity} @ {price:.2f}, "
+                    f"стоп: {stop_loss:.2f}, тейк: {take_profit:.2f}")
+        except Exception as e:
+            logger.exception(f"Ошибка при открытии позиции {symbol}: {e}")
+            return None
     
     def _close_position(self, symbol: str, price: float, date: datetime, reason: str) -> None:
-        """
-        Закрытие позиции
-        
-        Args:
-            symbol: Тикер символа
-            price: Цена закрытия
-            date: Дата закрытия
-            reason: Причина закрытия
-        """
-        # Проверяем, есть ли у нас открытая позиция
-        if symbol not in self.positions:
-            logger.warning(f"Нет открытой позиции для {symbol}, пропускаем сигнал")
-            return
-        
-        position = self.positions[symbol]
-        
-        # Рассчитываем стоимость позиции при закрытии
-        close_value = position['quantity'] * price
-        commission = close_value * self.commission_rate
-        
-        # Обновляем капитал
-        self.capital += close_value - commission
-        
-        # Обновляем максимальный капитал
-        if self.capital > self.max_capital:
-            self.max_capital = self.capital
-        
-        # Рассчитываем результаты сделки
-        entry_value = position['quantity'] * position['entry_price']
-        profit = close_value - entry_value
-        profit_percent = (price / position['entry_price'] - 1) * 100
-        
-        # Сохраняем запись о закрытии сделки
-        trade = {
-            'symbol': symbol,
-            'entry_date': position['entry_date'],
-            'entry_price': position['entry_price'],
-            'exit_date': date,
-            'exit_price': price,
-            'quantity': position['quantity'],
-            'type': 'sell',
-            'reason': reason,
-            'commission': commission,
-            'profit': profit,
-            'profit_percent': profit_percent,
-            'holding_days': (date - position['entry_date']).days
-        }
-        
-        self.trades.append(trade)
-        
-        # Удаляем позицию
-        del self.positions[symbol]
-        
-        logger.debug(f"Закрыта позиция {symbol}: {position['quantity']} @ {price:.2f}, "
-                   f"прибыль: {profit:.2f} ({profit_percent:.2f}%), причина: {reason}")
+        try:
+            """
+            Закрытие позиции
+            
+            Args:
+                symbol: Тикер символа
+                price: Цена закрытия
+                date: Дата закрытия
+                reason: Причина закрытия
+            """
+            # Проверяем, есть ли у нас открытая позиция
+            if symbol not in self.positions:
+                logger.warning(f"Нет открытой позиции для {symbol}, пропускаем сигнал")
+                return
+            
+            position = self.positions[symbol]
+            
+            # Рассчитываем стоимость позиции при закрытии
+            close_value = position['quantity'] * price
+            commission = close_value * self.commission_rate
+            
+            # Обновляем капитал
+            self.capital += close_value - commission
+            
+            # Обновляем максимальный капитал
+            if self.capital > self.max_capital:
+                self.max_capital = self.capital
+            
+            # Рассчитываем результаты сделки
+            entry_value = position['quantity'] * position['entry_price']
+            profit = close_value - entry_value
+            profit_percent = (price / position['entry_price'] - 1) * 100
+            
+            # Сохраняем запись о закрытии сделки
+            trade = {
+                'symbol': symbol,
+                'entry_date': position['entry_date'],
+                'entry_price': position['entry_price'],
+                'exit_date': date,
+                'exit_price': price,
+                'quantity': position['quantity'],
+                'type': 'sell',
+                'reason': reason,
+                'commission': commission,
+                'profit': profit,
+                'profit_percent': profit_percent,
+                'holding_days': (date - position['entry_date']).days
+            }
+            
+            self.trades.append(trade)
+            
+            # Удаляем позицию
+            del self.positions[symbol]
+            
+            logger.debug(f"Закрыта позиция {symbol}: {position['quantity']} @ {price:.2f}, "
+                    f"прибыль: {profit:.2f} ({profit_percent:.2f}%), причина: {reason}")
+        except Exception as e:
+            logger.exception(f"Ошибка при закрытии позиции {symbol}: {e}")
+            return None
     
     def _calculate_metrics(self) -> Dict[str, Any]:
         """

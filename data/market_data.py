@@ -96,53 +96,69 @@ class MarketDataProvider:
         return df
 
     def get_instrument_info(self, symbol: str) -> Optional[Dict[str, Any]]:
-        # Поиск в кэше
-        if symbol in self.instruments_cache:
-            return self.instruments_cache[symbol]
-        
+        # Словарь популярных FIGI
+        known_figis = {
+            'SBER': 'BBG004730N88',
+            'GAZP': 'BBG004731489',
+            'LKOH': 'BBG004731032',
+            'ROSN': 'BBG004731354'
+        }
         try:
+            if symbol in self.instruments_cache:
+                logger.info(f"[{symbol}] Информация найдена в кэше.")
+                return self.instruments_cache[symbol]
+
+            from tinkoff.invest import InstrumentIdType
             with Client(self.token) as client:
-                instruments = client.instruments.find_instrument(query=symbol)
-            
-            if not instruments.instruments:
-                logger.error(f"Инструмент {symbol} не найден")
-                return None
-                
-            # Приоритет: российские акции с кодом TQBR
-            share_instruments = []
-            tqbr_shares = []
-            
-            for instr in instruments.instruments:
-                if instr.ticker == symbol and getattr(instr.instrument_type, 'name', None) == 'INSTRUMENT_TYPE_SHARE':
-                    share_instruments.append(instr)
-                    if hasattr(instr, 'class_code') and instr.class_code == 'TQBR':
-                        tqbr_shares.append(instr)
-            
-            # Выбираем в первую очередь акции TQBR
-            if tqbr_shares:
-                selected_instrument = tqbr_shares[0]
-            elif share_instruments:
-                selected_instrument = share_instruments[0]
-            elif instruments.instruments:
-                selected_instrument = instruments.instruments[0]
-            else:
-                return None
-                
-            # Создаем информацию об инструменте
-            instrument_info = {
-                'figi': selected_instrument.figi,
-                'ticker': selected_instrument.ticker,
-                'name': selected_instrument.name,
-                'lot': selected_instrument.lot,
-                'currency': selected_instrument.currency,
-                'class_code': selected_instrument.class_code if hasattr(selected_instrument, 'class_code') else None
-            }
-            
-            self.instruments_cache[symbol] = instrument_info
-            return instrument_info
-            
+                figi = known_figis.get(symbol)
+                if figi:
+                    logger.info(f"[{symbol}] Используем известный FIGI: {figi}")
+                else:
+                    # Если FIGI не задан — ищем по тикеру и class_code
+                    instruments = client.instruments.find_instrument(query=symbol)
+                    if not instruments.instruments:
+                        logger.error(f"[{symbol}] Инструмент не найден через find_instrument.")
+                        return None
+                    for instr in instruments.instruments:
+                        logger.info(
+                            f"[{symbol}] Найден: ticker={instr.ticker}, figi={instr.figi}, "
+                            f"class_code={getattr(instr, 'class_code', None)}, "
+                        )
+                    # Берём первую акцию на TQBR
+                    candidates = [
+                        instr for instr in instruments.instruments
+                        if instr.ticker == symbol and getattr(instr, 'class_code', None) == 'TQBR'
+                    ]
+                    if not candidates:
+                        logger.warning(f"[{symbol}] Нет инструмента на TQBR, выбран первый найденный: {instruments.instruments[0].figi}")
+                        selected_instrument = instruments.instruments[0]
+                    else:
+                        selected_instrument = candidates[0]
+                    figi = selected_instrument.figi
+                    logger.info(f"[{symbol}] Выбран FIGI: {figi}")
+
+                share = client.instruments.share_by(
+                    id_type=InstrumentIdType.INSTRUMENT_ID_TYPE_FIGI, id=figi
+                )
+                if not share.instrument:
+                    logger.error(f"[{symbol}] Не удалось получить подробную информацию по FIGI {figi}")
+                    return None
+                inst = share.instrument
+
+                instrument_info = {
+                    'figi': inst.figi,
+                    'ticker': inst.ticker,
+                    'name': inst.name,
+                    'lot': inst.lot,
+                    'currency': inst.currency,
+                    'class_code': inst.class_code,
+                }
+                logger.info(f"[{symbol}] Итог: {instrument_info}")
+                self.instruments_cache[symbol] = instrument_info
+                return instrument_info
+
         except Exception as e:
-            logger.error(f"Ошибка при получении информации об инструменте {symbol}: {e}")
+            logger.exception(f"[{symbol}] Ошибка при получении информации об инструменте: {e}")
             return None
 
     def get_historical_data(self, symbol, interval, days_back=60):
