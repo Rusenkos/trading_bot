@@ -19,7 +19,8 @@ from strategies.base import StrategyInterface
 from strategies.trend import TrendStrategy
 from strategies.reversal import ReversalStrategy
 from strategies.combined import CombinedStrategy
-
+from dotenv import load_dotenv
+load_dotenv()
 logger = logging.getLogger(__name__)
 
 class BacktestEngine:

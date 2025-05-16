@@ -5,7 +5,8 @@ import logging
 from pathlib import Path
 from datetime import datetime
 from tinkoff.invest import CandleInterval
-
+from dotenv import load_dotenv
+load_dotenv()
 logger = logging.getLogger(__name__)
 
 def load_config(config_path=None):
@@ -73,7 +74,7 @@ class Config:
     MAX_POSITION_SIZE = 0.9  # 90% капитала на одну позицию
     MAX_POSITIONS = 1        # Максимальное количество одновременных позиций
     MAX_HOLDING_DAYS = 7     # Максимальное количество дней удержания позиции
-    
+    TAKE_PROFIT_PERCENT = 5.0
     # Настройки комиссий и исполнения
     COMMISSION_RATE = 0.003  # 0.3% комиссия на сделку
     USE_MARKET_ORDERS = True # Использовать рыночные ордера

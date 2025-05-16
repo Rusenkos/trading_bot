@@ -450,6 +450,6 @@ class TechnicalIndicators:
         df['RSI_Divergence'] = TechnicalIndicators.calculate_divergence(df, df['RSI'])
         
         # Заполняем пропуски в индикаторах
-        df = df.fillna(method='bfill')
+        df = df.bfill()
         
         return df

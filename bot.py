@@ -67,7 +67,7 @@ class TradingBot:
     def initialize(self):
         logger.info("Инициализация компонентов бота...")
         try:
-            print(f"TINKOFF TOKEN = {repr(token)}")
+            print(f"TINKOFF TOKEN = {repr(self.config.TINKOFF_TOKEN)}")
             # Провайдер рыночных данных
             self.market_data = MarketDataProvider(self.config.TINKOFF_TOKEN, self.config)
             # Менеджер позиций

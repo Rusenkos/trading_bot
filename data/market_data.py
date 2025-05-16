@@ -14,7 +14,9 @@ from tinkoff.invest import (
     RequestError
 )
 from tinkoff.invest.utils import now, quotation_to_decimal
-
+from dotenv import load_dotenv
+load_dotenv()
+from config.config import Config
 logger = logging.getLogger(__name__)
 
 class MarketDataProvider:
