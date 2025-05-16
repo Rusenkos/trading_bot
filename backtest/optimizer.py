@@ -104,7 +104,7 @@ class StrategyOptimizer:
             return {
                 'EMA_SHORT': [3, 5, 8, 10, 12],
                 'EMA_LONG': [15, 20, 25, 30],
-                'MIN_VOLUME_FACTOR': [1.0, 1.5, 2.0, 2.5],
+                'MIN_VOLUME_FACTOR': [1.0, 1.3, 1.5, 1.8, 2.0, 2.3, 2.5],
                 'STOP_LOSS_PERCENT': [1.5, 2.0, 2.5, 3.0],
                 'TAKE_PROFIT_PERCENT': [3.0, 4.0, 5.0, 6.0, 7.0]
             }
@@ -239,11 +239,50 @@ class StrategyOptimizer:
         logger.info(f"Лучшее значение метрики {metric}: {best_metric_value}")
         
         return optimization_result
-    
+    def _run_backtest_with_params(self, combo, param_names, strategy_name, symbol, start_date, end_date):
+        """
+        Выполнение бэктеста с заданными параметрами (вынесено на уровень класса)
+        
+        Args:
+            combo: Комбинация значений параметров
+            param_names: Имена параметров
+            strategy_name: Название стратегии
+            symbol: Символ для оптимизации
+            start_date: Дата начала
+            end_date: Дата окончания
+            
+        Returns:
+            dict: Результаты бэктеста
+        """
+        # Формируем словарь параметров
+        params = dict(zip(param_names, combo))
+        
+        # Создаем копию конфигурации
+        config_copy = deepcopy(self.config)
+        
+        # Обновляем параметры
+        for param_name, param_value in params.items():
+            setattr(config_copy, param_name, param_value)
+        
+        # Создаем новый экземпляр BacktestEngine с обновленной конфигурацией
+        backtest_engine = BacktestEngine(config_copy)
+        
+        # Запускаем бэктест
+        result = backtest_engine.run_backtest(
+            strategy_name=strategy_name,
+            symbol=symbol,
+            start_date=start_date,
+            end_date=end_date
+        )
+        
+        # Добавляем параметры к результату
+        result['parameters'] = params
+        
+        return result
     def _parallel_grid_search(self, strategy_name: str, symbol: str, 
-                           parameter_ranges: Dict[str, List[Any]],
-                           start_date: datetime, end_date: datetime,
-                           metric: str, max_workers: int) -> Dict[str, Any]:
+                        parameter_ranges: Dict[str, List[Any]],
+                        start_date: datetime, end_date: datetime,
+                        metric: str, max_workers: int) -> Dict[str, Any]:
         """
         Параллельная оптимизация методом полного перебора
         
@@ -267,45 +306,20 @@ class StrategyOptimizer:
         total_combinations = len(combinations)
         
         logger.info(f"Запуск parallel grid search с {total_combinations} комбинациями параметров "
-                  f"и {max_workers} рабочими процессами")
+                f"и {max_workers} рабочими процессами")
         
         # Время начала оптимизации
         start_time = time.time()
-        
-        # Функция для выполнения бэктеста с заданными параметрами
-        def run_backtest_with_params(combo):
-            # Формируем словарь параметров
-            params = dict(zip(param_names, combo))
-            
-            # Создаем копию конфигурации
-            config_copy = deepcopy(self.config)
-            
-            # Обновляем параметры
-            for param_name, param_value in params.items():
-                setattr(config_copy, param_name, param_value)
-            
-            # Создаем новый экземпляр BacktestEngine с обновленной конфигурацией
-            backtest_engine = BacktestEngine(config_copy)
-            
-            # Запускаем бэктест
-            result = backtest_engine.run_backtest(
-                strategy_name=strategy_name,
-                symbol=symbol,
-                start_date=start_date,
-                end_date=end_date
-            )
-            
-            # Добавляем параметры к результату
-            result['parameters'] = params
-            
-            return result
         
         # Запускаем параллельное выполнение
         all_results = []
         completed = 0
         
         with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
-            futures = {executor.submit(run_backtest_with_params, combo): combo for combo in combinations}
+            # Используем метод класса вместо локальной функции
+            futures = {executor.submit(self._run_backtest_with_params, combo, param_names, 
+                                    strategy_name, symbol, start_date, end_date): combo 
+                    for combo in combinations}
             
             for future in concurrent.futures.as_completed(futures):
                 completed += 1
@@ -321,7 +335,7 @@ class StrategyOptimizer:
                         remaining_time = elapsed_time / completed * (total_combinations - completed)
                         
                         logger.info(f"Прогресс: {completed}/{total_combinations} ({progress:.1f}%), "
-                                  f"Прошло: {elapsed_time:.1f} сек, Осталось: {remaining_time:.1f} сек")
+                                f"Прошло: {elapsed_time:.1f} сек, Осталось: {remaining_time:.1f} сек")
                 
                 except Exception as e:
                     logger.error(f"Ошибка при выполнении бэктеста: {e}")

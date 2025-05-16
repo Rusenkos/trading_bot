@@ -46,13 +46,13 @@ class Config:
     TIMEFRAME = CandleInterval.CANDLE_INTERVAL_DAY
     
     # Настройки трендовой стратегии
-    EMA_SHORT = 8
-    EMA_LONG = 21
+    EMA_SHORT = 5
+    EMA_LONG = 20
     MACD_FAST = 12
     MACD_SLOW = 26
     MACD_SIGNAL = 9
     VOLUME_MA_PERIOD = 20
-    MIN_VOLUME_FACTOR = 1.2  # Минимальный множитель объема для входа
+    MIN_VOLUME_FACTOR = 2.0  # Минимальный множитель объема для входа
     
     # Настройки контртрендовой стратегии
     RSI_PERIOD = 14
@@ -62,12 +62,12 @@ class Config:
     BOLLINGER_STD = 2
     
     # Управление рисками
-    STOP_LOSS_PERCENT = 2.0
+    STOP_LOSS_PERCENT = 3.0
     TRAILING_STOP_PERCENT = 1.5
     MAX_POSITION_SIZE = 0.9
     MAX_POSITIONS = 1
     MAX_HOLDING_DAYS = 7
-    TAKE_PROFIT_PERCENT = 4.0  # <-- добавлен обязательный параметр
+    TAKE_PROFIT_PERCENT = 3.0  # <-- добавлен обязательный параметр
     
     # Настройки комиссий и исполнения
     COMMISSION_RATE = 0.003  # 0.3% комиссия на сделку
