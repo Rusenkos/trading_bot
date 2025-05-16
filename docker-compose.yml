@@ -1,0 +1,33 @@
+version: '3.10.12'
+
+services:
+  trading-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: trading_bot
+    volumes:
+      - .:/app
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./reports:/app/reports
+    env_file:
+      - .env
+    restart: unless-stopped
+    command: python main.py trade
+
+  backtest:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: trading_bot_backtest
+    volumes:
+      - .:/app
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./reports:/app/reports
+    env_file:
+      - .env
+    command: python main.py backtest --symbol SBER --days 60 --plot --report
+    profiles:
+      - backtest

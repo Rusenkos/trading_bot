@@ -1,0 +1,66 @@
+### config/default_config.yaml ###
+
+# Основные настройки
+api:
+  tinkoff_token: ""  # Заполняется из .env при запуске
+  telegram_token: "" # Заполняется из .env при запуске
+  telegram_chat_id: "" # Заполняется из .env при запуске
+
+# Режим работы 
+mode:
+  demo_mode: false  # true для работы без реальных сделок
+  use_cache: true   # Кэширование данных
+  log_level: "INFO"
+  cache_dir: "data_cache"
+
+# Торговые инструменты
+trading:
+  symbols: ["SBER", "GAZP", "LKOH", "ROSN"]
+  timeframe: "CANDLE_INTERVAL_DAY"
+  market_open_hour: 10
+  market_close_hour: 19
+  trading_days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+  update_interval: 900  # секунды (15 минут)
+  check_stop_loss_interval: 300  # секунды (5 минут)
+
+# Параметры исполнения
+execution:
+  commission_rate: 0.003  # 0.3%
+  use_market_orders: true
+  max_positions: 1
+  max_position_size: 0.9  # 90% капитала на позицию
+  max_holding_days: 7
+
+# Управление рисками
+risk:
+  stop_loss_percent: 2.5
+  trailing_stop_percent: 1.8
+  take_profit_percent: 6.0
+
+# Стратегии
+strategies:
+  active_strategies: ["trend", "reversal"]
+  strategy_mode: "any"  # "any" или "all"
+
+  # Трендовая стратегия
+  trend:
+    ema_short: 5
+    ema_long: 15
+    macd_fast: 12
+    macd_slow: 26
+    macd_signal: 9
+    volume_ma_period: 20
+    min_volume_factor: 1.5
+
+  # Контртрендовая стратегия
+  reversal:
+    rsi_period: 14
+    rsi_oversold: 30
+    rsi_overbought: 70
+    bollinger_period: 20
+    bollinger_std: 2
+
+# Бэктестинг
+backtest:
+  initial_capital: 50000
+  min_data_points: 30

@@ -1,0 +1,17 @@
+# Обязательные пакеты
+tinkoff-investments>=0.2.0b111
+pandas>=1.3.0
+numpy>=1.20.0
+matplotlib>=3.4.0
+pytz>=2021.1
+python-dotenv>=0.19.0
+pytelegrambotapi>=4.0.0
+SQLite3>=3.0.0
+pydantic>=1.9.0
+
+# Для запуска в фоновом режиме
+python-daemon>=2.3.0
+
+# Для визуализации данных и отчетов
+seaborn>=0.11.0
+plotly>=5.0.0
