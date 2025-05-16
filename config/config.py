@@ -112,8 +112,8 @@ class Config:
     USE_CACHE = True
     
     # Настройки бэктестинга
-    INITIAL_CAPITAL = 100000  # 100к рублей
-    
+    INITIAL_CAPITAL = 50000  # 50к рублей
+
     @classmethod
     def from_dict(cls, config_dict):
         """

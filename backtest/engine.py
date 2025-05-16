@@ -129,49 +129,28 @@ class BacktestEngine:
         else:
             return None
     
-    def _get_historical_data(self, symbol: str, start_date: datetime, 
-                           end_date: datetime) -> Optional[pd.DataFrame]:
+    def _get_historical_data(self, symbol: str, start_date: datetime, end_date: datetime) -> Optional[pd.DataFrame]:
         """
         Получение исторических данных для бэктеста
-        
-        Args:
-            symbol: Символ для получения данных
-            start_date: Дата начала
-            end_date: Дата окончания
-            
-        Returns:
-            DataFrame: Исторические данные или None при ошибке
         """
         try:
-            # Подключаемся к провайдеру данных
-            self.data_provider.connect()
-            
-            # Рассчитываем количество дней
+            # days_diff = (end_date - start_date).days
             days_diff = (end_date - start_date).days
-            
             # Получаем данные
             data = self.data_provider.get_historical_data(
                 symbol, 
                 self.config.TIMEFRAME,
                 days_back=days_diff + 30  # Добавляем запас для расчета индикаторов
             )
-            
             # Фильтруем данные по дате
             if data is not None:
                 data = data[(data.index >= start_date) & (data.index <= end_date)]
-            
             # Добавляем индикаторы
             data = TechnicalIndicators.calculate_all_indicators(data, self.config)
-            
             return data
-            
         except Exception as e:
             logger.error(f"Ошибка при получении исторических данных: {e}")
             return None
-        
-        finally:
-            # Отключаемся от провайдера данных
-            self.data_provider.disconnect()
     
     def _run_simulation(self, data: pd.DataFrame, strategy: StrategyInterface, symbol: str) -> None:
         """
