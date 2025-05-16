@@ -5,7 +5,7 @@ import time
 import random
 import os
 from datetime import datetime, timedelta
-
+from typing import Optional, Dict, Any
 from tinkoff.invest import (
     Client, 
     CandleInterval,
@@ -95,79 +95,55 @@ class MarketDataProvider:
                 df.loc[df.index[i], 'volume'] *= 2
         return df
 
-    def get_instrument_info(self, symbol):
-        # Кэш и демо-режим
+    def get_instrument_info(self, symbol: str) -> Optional[Dict[str, Any]]:
+        # Поиск в кэше
         if symbol in self.instruments_cache:
             return self.instruments_cache[symbol]
-        if hasattr(self.config, 'DEMO_MODE') and self.config.DEMO_MODE:
+        
+        try:
+            with Client(self.token) as client:
+                instruments = client.instruments.find_instrument(query=symbol)
+            
+            if not instruments.instruments:
+                logger.error(f"Инструмент {symbol} не найден")
+                return None
+                
+            # Приоритет: российские акции с кодом TQBR
+            share_instruments = []
+            tqbr_shares = []
+            
+            for instr in instruments.instruments:
+                if instr.ticker == symbol and getattr(instr.instrument_type, 'name', None) == 'INSTRUMENT_TYPE_SHARE':
+                    share_instruments.append(instr)
+                    if hasattr(instr, 'class_code') and instr.class_code == 'TQBR':
+                        tqbr_shares.append(instr)
+            
+            # Выбираем в первую очередь акции TQBR
+            if tqbr_shares:
+                selected_instrument = tqbr_shares[0]
+            elif share_instruments:
+                selected_instrument = share_instruments[0]
+            elif instruments.instruments:
+                selected_instrument = instruments.instruments[0]
+            else:
+                return None
+                
+            # Создаем информацию об инструменте
             instrument_info = {
-                'figi': f"DEMO_{symbol}",
-                'ticker': symbol,
-                'name': f"{symbol} (Demo)",
-                'lot': 1,
-                'currency': 'rub',
-                'class_code': 'TQBR'
+                'figi': selected_instrument.figi,
+                'ticker': selected_instrument.ticker,
+                'name': selected_instrument.name,
+                'lot': selected_instrument.lot,
+                'currency': selected_instrument.currency,
+                'class_code': selected_instrument.class_code if hasattr(selected_instrument, 'class_code') else None
             }
+            
             self.instruments_cache[symbol] = instrument_info
             return instrument_info
-
-        max_retries = 3
-        for retry in range(max_retries):
-            try:
-                with Client(self.token) as client:
-                    instruments = client.instruments.find_instrument(query=symbol)
-                if not instruments.instruments:
-                    logger.error(f"Инструмент {symbol} не найден")
-                    return None
-                share_instruments = []
-                for instr in instruments.instruments:
-                    logger.info(f"Найден инструмент: {instr.ticker} ({instr.figi}), тип: {instr.instrument_type}")
-                    if instr.ticker == symbol and getattr(instr.instrument_type, 'name', None) == 'INSTRUMENT_TYPE_SHARE':
-                        if hasattr(instr, 'class_code') and instr.class_code == 'TQBR':
-                            share_instruments.append(instr)
-                        if not share_instruments:
-                            share_instruments.append(instr)
-                if share_instruments:
-                    tqbr_shares = [s for s in share_instruments if hasattr(s, 'class_code') and s.class_code == 'TQBR']
-                    if tqbr_shares:
-                        best_instrument = tqbr_shares[0]
-                    else:
-                        best_instrument = share_instruments[0]
-                    instrument_info = {
-                        'figi': best_instrument.figi,
-                        'ticker': best_instrument.ticker,
-                        'name': getattr(best_instrument, 'name', symbol),
-                        'lot': getattr(best_instrument, 'lot', 1),
-                        'currency': getattr(best_instrument, 'currency', 'rub'),
-                        'class_code': getattr(best_instrument, 'class_code', None)
-                    }
-                    self.instruments_cache[symbol] = instrument_info
-                    logger.info(f"Выбран инструмент: {instrument_info['ticker']} ({instrument_info['figi']})")
-                    return instrument_info
-                if instruments.instruments:
-                    first_instr = instruments.instruments[0]
-                    instrument_info = {
-                        'figi': first_instr.figi,
-                        'ticker': first_instr.ticker,
-                        'name': getattr(first_instr, 'name', symbol),
-                        'lot': getattr(first_instr, 'lot', 1),
-                        'currency': getattr(first_instr, 'currency', 'rub'),
-                        'class_code': getattr(first_instr, 'class_code', None)
-                    }
-                    self.instruments_cache[symbol] = instrument_info
-                    logger.info(f"Выбран первый доступный инструмент: {instrument_info['ticker']} ({instrument_info['figi']})")
-                    return instrument_info
-                logger.error(f"Не удалось найти подходящий инструмент для {symbol}")
-                return None
-            except Exception as e:
-                if retry < max_retries - 1:
-                    sleep_time = (2 ** retry) + random.uniform(0, 1)
-                    logger.warning(f"Ошибка при получении информации об инструменте {symbol}: {e}. "
-                                   f"Повторная попытка через {sleep_time:.2f} сек...")
-                    time.sleep(sleep_time)
-                else:
-                    logger.error(f"Не удалось получить информацию об инструменте {symbol} после {max_retries} попыток: {e}")
-                    return None
+            
+        except Exception as e:
+            logger.error(f"Ошибка при получении информации об инструменте {symbol}: {e}")
+            return None
 
     def get_historical_data(self, symbol, interval, days_back=60):
         logger.info(f"Получение исторических данных для {symbol}")

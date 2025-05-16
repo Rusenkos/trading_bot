@@ -46,42 +46,29 @@ class TrendStrategy(StrategyInterface):
     def check_buy_signals(self, data: pd.DataFrame) -> Tuple[bool, Optional[Dict[str, Any]]]:
         """
         Проверка сигналов на покупку для трендовой стратегии
-        
-        Args:
-            data: DataFrame с ценовыми данными и индикаторами
-            
-        Returns:
-            tuple: (есть_сигнал, детали_сигнала)
         """
         if data is None or len(data) < self.ema_long + 2:
-            logger.warning("Недостаточно данных для проверки сигналов трендовой стратегии")
             return False, None
-        
-        # Получаем последние две строки для проверки пересечения
+            
         curr = data.iloc[-1]
         prev = data.iloc[-2]
         
-        # 1. Проверяем пересечение EMA (быстрая пересекает медленную снизу вверх)
-        ema_cross_up = (
-            prev[f'EMA_{self.ema_short}'] <= prev[f'EMA_{self.ema_long}'] and 
-            curr[f'EMA_{self.ema_short}'] > curr[f'EMA_{self.ema_long}']
+        # Ослабляем условие пересечения EMA - проверяем сближение EMA
+        ema_convergence = (
+            prev[f'EMA_{self.ema_short}'] <= prev[f'EMA_{self.ema_long}'] * 1.01 and
+            curr[f'EMA_{self.ema_short}'] >= curr[f'EMA_{self.ema_long}'] * 0.99
         )
         
-        # 2. Проверяем MACD (линия MACD выше сигнальной или пересекает ее снизу вверх)
-        macd_positive = curr['MACD'] > curr['MACD_Signal']
-        macd_cross_up = (
-            prev['MACD'] <= prev['MACD_Signal'] and 
-            curr['MACD'] > curr['MACD_Signal']
-        )
+        # Ослабляем условие MACD
+        macd_positive = curr['MACD'] > curr['MACD_Signal'] * 0.95
+        macd_increasing = curr['MACD'] > prev['MACD']
         
-        # 3. Проверяем объем (выше среднего)
-        volume_above_average = curr['Volume_Ratio'] > self.min_volume_factor
+        # Ослабляем условие объема
+        volume_sufficient = curr['Volume_Ratio'] > self.min_volume_factor * 0.8
         
-        # Формируем сигнал
-        # Основной сигнал: пересечение EMA
-        # Дополнительные условия: MACD и объем
-        signal = ema_cross_up and (macd_positive or macd_cross_up) and volume_above_average
-        
+        # Формируем сигнал с ослабленными условиями
+        signal = (ema_convergence and (macd_positive or macd_increasing) and volume_sufficient)
+            
         if signal:
             # Собираем детали сигнала
             signal_details = {

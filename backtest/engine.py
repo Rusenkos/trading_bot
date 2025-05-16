@@ -42,7 +42,7 @@ class BacktestEngine:
             config: Объект конфигурации
         """
         self.config = config
-        self.data_provider = MarketDataProvider(config.TINKOFF_TOKEN, config)
+        self.data_provider = MarketDataProvider(self.config.TINKOFF_TOKEN, config)
         self.initial_capital = config.INITIAL_CAPITAL
         self.commission_rate = config.COMMISSION_RATE
         
