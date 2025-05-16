@@ -1,4 +1,3 @@
-### config/config.py ###
 import os
 import yaml
 import logging
@@ -6,23 +5,17 @@ from pathlib import Path
 from datetime import datetime
 from tinkoff.invest import CandleInterval
 from dotenv import load_dotenv
+
+# Грузим .env при старте модуля
 load_dotenv()
 logger = logging.getLogger(__name__)
 
 def load_config(config_path=None):
     """
     Загружает конфигурацию из YAML файла.
-    
-    Args:
-        config_path: Путь к файлу конфигурации (если None, используется конфигурация по умолчанию)
-        
-    Returns:
-        dict: Словарь с конфигурацией
     """
     if config_path is None:
-        # Используем файл конфигурации по умолчанию
         config_path = os.path.join(os.path.dirname(__file__), 'default_config.yaml')
-    
     try:
         with open(config_path, 'r', encoding='utf-8') as file:
             config_data = yaml.safe_load(file)
@@ -44,13 +37,13 @@ class Config:
     ENV_FILE = '.env'
     
     # Тикеры для торговли
-    SYMBOLS = ['SBER', 'GAZP', 'LKOH', 'ROSN']  # Голубые фишки
+    SYMBOLS = ['SBER', 'GAZP', 'LKOH', 'ROSN']
     
     # Режим демо-данных
     DEMO_MODE = False
     
     # Настройки таймфрейма
-    TIMEFRAME = CandleInterval.CANDLE_INTERVAL_DAY  # Дневной таймфрейм
+    TIMEFRAME = CandleInterval.CANDLE_INTERVAL_DAY
     
     # Настройки трендовой стратегии
     EMA_SHORT = 8
@@ -71,29 +64,30 @@ class Config:
     # Управление рисками
     STOP_LOSS_PERCENT = 2.0
     TRAILING_STOP_PERCENT = 1.5
-    MAX_POSITION_SIZE = 0.9  # 90% капитала на одну позицию
-    MAX_POSITIONS = 1        # Максимальное количество одновременных позиций
-    MAX_HOLDING_DAYS = 7     # Максимальное количество дней удержания позиции
-    TAKE_PROFIT_PERCENT = 4.0
+    MAX_POSITION_SIZE = 0.9
+    MAX_POSITIONS = 1
+    MAX_HOLDING_DAYS = 7
+    TAKE_PROFIT_PERCENT = 4.0  # <-- добавлен обязательный параметр
+    
     # Настройки комиссий и исполнения
     COMMISSION_RATE = 0.003  # 0.3% комиссия на сделку
-    USE_MARKET_ORDERS = True # Использовать рыночные ордера
+    USE_MARKET_ORDERS = True
     
     # Настройки стратегий
-    ACTIVE_STRATEGIES = ["trend", "reversal"]  # Список активных стратегий
-    STRATEGY_MODE = "any"    # "any" - любая стратегия дает сигнал, "all" - все стратегии должны дать сигнал
+    ACTIVE_STRATEGIES = ["trend", "reversal"]
+    STRATEGY_MODE = "any"
     
     # Настройки логирования
     LOG_LEVEL = 'INFO'
     LOG_FILE = 'logs/trading_bot.log'
     
     # Настройки цикла работы бота
-    UPDATE_INTERVAL = 900    # Интервал обновления данных (в секундах): 15 минут
-    CHECK_STOP_LOSS_INTERVAL = 300  # Интервал проверки стоп-лоссов (в секундах): 5 минут
+    UPDATE_INTERVAL = 900
+    CHECK_STOP_LOSS_INTERVAL = 300
     
     # Рабочее время рынка (Мосбиржа)
-    MARKET_OPEN_HOUR = 10  # Открытие рынка (МСК)
-    MARKET_CLOSE_HOUR = 19  # Закрытие рынка (МСК)
+    MARKET_OPEN_HOUR = 10
+    MARKET_CLOSE_HOUR = 19
     TRADING_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
     
     # Настройки для чтения данных
@@ -113,49 +107,28 @@ class Config:
     USE_CACHE = True
     
     # Настройки бэктестинга
-    INITIAL_CAPITAL = 50000  # 50к рублей
-
+    INITIAL_CAPITAL = 50000
+    
     @classmethod
     def from_dict(cls, config_dict):
         """
         Создает экземпляр Config на основе словаря
-        
-        Args:
-            config_dict: Словарь с конфигурацией
-            
-        Returns:
-            Config: Новый экземпляр с загруженной конфигурацией
         """
         instance = cls()
-        
-        # Обновляем атрибуты из словаря
         for section, params in config_dict.items():
             if isinstance(params, dict):
                 for key, value in params.items():
                     attr_name = f"{section.upper()}_{key.upper()}"
-                    if hasattr(instance, attr_name):
-                        setattr(instance, attr_name, value)
-                    else:
-                        # Для новых параметров или секций
-                        setattr(instance, attr_name, value)
+                    setattr(instance, attr_name, value)
             else:
-                # Для параметров верхнего уровня
                 attr_name = section.upper()
-                if hasattr(instance, attr_name):
-                    setattr(instance, attr_name, params)
-        
+                setattr(instance, attr_name, params)
         return instance
-    
+
     @classmethod
     def load(cls, config_path=None):
         """
         Загружает конфигурацию из файла
-        
-        Args:
-            config_path: Путь к файлу конфигурации
-            
-        Returns:
-            Config: Новый экземпляр с загруженной конфигурацией
         """
         config_dict = load_config(config_path)
         return cls.from_dict(config_dict)
@@ -165,12 +138,11 @@ class Config:
         """
         Перезагрузка переменных окружения из .env файла.
         """
-        from dotenv import load_dotenv
         load_dotenv(dotenv_path=cls.ENV_FILE, override=True)
         cls.TINKOFF_TOKEN = os.environ.get('TINKOFF_TOKEN', '')
         cls.TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN', '')
         cls.TELEGRAM_CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID', '')
-        
+
     @classmethod
     def is_token_valid(cls):
         """
@@ -178,37 +150,27 @@ class Config:
         """
         if not cls.TINKOFF_TOKEN:
             return False
-        # Базовая проверка формата (токены обычно начинаются с t.)
         if not cls.TINKOFF_TOKEN.startswith('t.'):
             return False
-        # Минимальная длина для токена
         if len(cls.TINKOFF_TOKEN) < 20:
             return False
         return True
-    
+
     def to_dict(self):
         """
         Преобразует конфигурацию в словарь
-        
-        Returns:
-            dict: Словарь с конфигурацией
         """
         result = {}
         for attr in dir(self):
             if not attr.startswith('__') and not callable(getattr(self, attr)):
                 result[attr] = getattr(self, attr)
         return result
-    
+
     def save(self, config_path):
         """
         Сохраняет конфигурацию в файл
-        
-        Args:
-            config_path: Путь к файлу для сохранения
         """
         config_dict = self.to_dict()
-        
-        # Группировка параметров по секциям
         structured_config = {}
         for key, value in config_dict.items():
             if '_' in key:
@@ -218,8 +180,6 @@ class Config:
                 structured_config[section][param] = value
             else:
                 structured_config[key.lower()] = value
-        
-        # Сохранение в YAML
         try:
             with open(config_path, 'w', encoding='utf-8') as file:
                 yaml.dump(structured_config, file, default_flow_style=False, sort_keys=False)
